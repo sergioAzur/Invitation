@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>You are invited · Azur Group</title>
+<meta name="description" content="Open your invitation and let us know if you can join us.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Azur Group">
+<meta property="og:title" content="You are invited · Azur Group">
+<meta property="og:description" content="Open your invitation and let us know if you can join us.">
+<meta property="og:image" content="assets/azur-group.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Montserrat:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+ 
+<div id="bgImg" aria-hidden="true"></div>
+ 
+<div class="bar" id="bar" role="region" aria-label="RSVP">
+  <span id="barText">Please RSVP for this event</span>
+  <button type="button" id="barBtn">RSVP now</button>
+</div>
+ 
+<main class="stage" aria-label="Invitation">
+  <div class="env" id="env" role="button" tabindex="0" aria-label="Open the invitation">
+    <!-- FRONT OF ENVELOPE -->
+    <div class="face front" aria-hidden="true">
+      <img class="stamp-img" id="stampImg" alt="" hidden>
+      <div class="sender" id="envText">You are invited</div>
+      <div class="to" id="toLine"></div>
+    </div>
+ 
+    <!-- BACK OF ENVELOPE (card inside) -->
+    <div class="face back" id="back">
+      <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <defs>
+          <!-- one paper colour for every flap + a subtle grain; the inside is one tone lighter -->
+          <pattern id="paper" patternUnits="userSpaceOnUse" width="14" height="14">
+            <rect id="paperBg" width="14" height="14" fill="#e2d9d0"/>
+            <image class="grainimg" width="14" height="14" preserveAspectRatio="none" opacity=".6" style="mix-blend-mode:multiply"/>
+          </pattern>
+          <pattern id="weave" patternUnits="userSpaceOnUse" width="14" height="14">
+            <rect id="weaveBg" width="14" height="14" fill="#f8f5f0"/>
+            <image class="grainimg" width="14" height="14" preserveAspectRatio="none" opacity=".5" style="mix-blend-mode:multiply"/>
+          </pattern>
+          <filter id="fold" x="-5%" y="-5%" width="110%" height="110%"><feDropShadow dx="0" dy="-.4" stdDeviation=".6" flood-color="#000" flood-opacity=".16"/></filter>
+        </defs>
+      </svg>
+      <div class="panel"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <rect x="2" y="2.5" width="96" height="97.5" fill="url(#weave)"/>
+      </svg></div>
+      <article class="card" id="card" aria-label="Invitation card">
+        <div class="brand" style="font-size:1.55em;letter-spacing:.22em;text-indent:.22em">AZUR<small>GROUP</small></div>
+        <div class="mid">
+          <div class="eyebrow" id="cEyebrow">You are invited to</div>
+          <h1 id="cTitle"></h1>
+          <div class="rule"></div>
+          <div class="when" id="cWhen"></div>
+        </div>
+        <div class="foot">Hosted by<b id="cHost">Azur Group</b></div>
+      </article>
+      <div class="pocket"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <!-- side flaps -->
+        <path d="M0 0 L47 56 Q48.5 57.5 47 59 L0 100 Z" fill="url(#paper)" filter="url(#fold)"/>
+        <path d="M100 0 L53 56 Q51.5 57.5 53 59 L100 100 Z" fill="url(#paper)" filter="url(#fold)"/>
+        <!-- bottom flap -->
+        <path d="M0 100 L44 51 Q50 44 56 51 L100 100 Z" fill="url(#paper)" filter="url(#fold)"/>
+        <path d="M0 0 L47 56 M100 0 L53 56" fill="none" stroke="#000" stroke-opacity=".08" stroke-width="1" vector-effect="non-scaling-stroke"/>
+        <path d="M0 100 L44 51 Q50 44 56 51 L100 100" fill="none" stroke="#fff" stroke-opacity=".10" stroke-width="1" vector-effect="non-scaling-stroke"/>
+      </svg></div>
+      <div class="flap" id="flap">
+        <svg class="out" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 0 H100 L57 84 Q50 97 43 84 Z" fill="url(#paper)"/>
+          <path d="M0 0 L43 84 Q50 97 57 84 L100 0" fill="none" stroke="#fff" stroke-opacity=".10" stroke-width="1" vector-effect="non-scaling-stroke"/>
+        </svg>
+        <svg class="in" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <!-- drawn upside down: the face is flipped once more when the flap opens, so the wide edge stays on the envelope -->
+          <g transform="translate(0,100) scale(1,-1)">
+            <path id="flapInBase" d="M0 0 H100 L57 84 Q50 97 43 84 Z" fill="url(#paper)"/>
+            <path d="M3.5 2.5 H96.5 L55.6 81 Q50 91 44.4 81 Z" fill="url(#weave)"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+</main>
+ 
+<div class="hint" id="hint" aria-live="polite"><b id="hintText">Loading invitation…</b></div>
+ 
+<div class="side" id="side" hidden>
+  <div class="rsvpbox" id="rsvpBox" role="group" aria-labelledby="rsvpHead">
+    <div class="rh" id="rsvpHead">Submit your RSVP</div>
+    <div class="rn" id="rsvpNote" hidden></div>
+    <div class="rc" id="rsvpChoices"><button class="btn yes" type="button" id="sideYes">Will attend</button><button class="btn no" type="button" id="sideNo">Will not attend</button></div>
+    <div class="rd" id="rsvpDone" hidden><span id="rsvpDoneText"></span><button type="button" id="rsvpChange">Change</button></div>
+  </div>
+  <button class="btn ghost" type="button" id="infoBtn" hidden>Event details</button>
+  <a class="btn ghost" id="calBtn" target="_blank" rel="noopener" hidden>Add to calendar</a>
+  <button class="btn ghost" type="button" id="turnBtn" hidden>View the back</button>
+  <a class="btn ghost" id="mapBtn" target="_blank" rel="noopener" hidden>View on map</a>
+  <a class="btn ghost" id="joinBtn" target="_blank" rel="noopener" hidden>Join online</a>
+  <button class="btn ghost" type="button" id="replayBtn" hidden>Replay</button>
+</div>
+ 
+<div class="scrim" id="scrim" hidden>
+  <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="rsvpTitle">
+    <header><h2 id="rsvpTitle">Submit your RSVP</h2><button class="x" type="button" id="closeBtn" aria-label="Close">×</button></header>
+ 
+    <form id="form" novalidate>
+      <div class="who">
+        <div class="name" id="whoName">Your RSVP</div>
+        <div class="choices" role="group" aria-label="Attendance">
+          <button type="button" class="choice yes" id="yesBtn" aria-pressed="false">Will attend</button>
+          <button type="button" class="choice no" id="noBtn" aria-pressed="false">Will not attend</button>
+        </div>
+      </div>
+      <p class="notice" id="fullNote" hidden>This event is now full. You can still let the host know you can’t attend.</p>
+      <div id="people"></div>
+      <button type="button" class="link" id="addGuest" hidden>⊕ Bring a guest</button>
+      <div class="qs" id="qs" hidden></div>
+      <label class="opt" for="msg"><span class="sr" hidden>Message</span>
+        <textarea id="msg" placeholder="Optional message to the host"></textarea></label>
+      <label class="consent" id="consentBox" for="consent" hidden><input type="checkbox" id="consent"><span id="consentText"></span></label>
+      <div class="formerr" id="formErr" role="alert"></div>
+      <div class="actions"><button class="btn" type="submit" id="submitBtn">Submit RSVP</button></div>
+    </form>
+ 
+    <div class="thanks" id="thanks" hidden>
+      <h3 id="thxTitle">Thank you</h3>
+      <p id="thxText"></p>
+      <button class="btn ghost" type="button" id="editBtn">Change my RSVP</button>
+    </div>
+  </section>
+</div>
+ 
+<div class="scrim" id="infoScrim" hidden>
+  <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+    <header><h2 id="infoTitle">Event details</h2><button class="x" type="button" id="infoClose" aria-label="Close">×</button></header>
+    <div id="infoBody"></div>
+  </section>
+</div>
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo" hidden><img id="lbImg" alt=""></div>
+ 
+<script src="config.js"></script>
+<script src="azur-api.js"></script>
+<script src="app.js"></script>
+</body></html>
+ 
