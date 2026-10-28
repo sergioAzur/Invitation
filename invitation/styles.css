@@ -1485,3 +1485,7 @@ textarea {
 .partner-signature .partner-dbh {
   transform: translateY(3px)
 }
+
+#rsvpTitle {
+  letter-spacing: normal;
+}
