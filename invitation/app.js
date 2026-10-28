@@ -66,10 +66,51 @@ function finalPose(){
 /* ---------- animation ---------- */
 const env=$("env"), back=$("back"), flap=$("flap"), card=$("card");
 let running=false, opened=false;
+/* Render the resting card directly in the page, outside the scaled envelope.
+   It returns to its original DOM position for replay. No JPG resampling/export. */
+const cardHome=card.parentNode;
+const cardAnchor=document.createComment('invitation-card-home');
+cardHome.insertBefore(cardAnchor,card);
+let cardIsFlat=false,turningCard=false,turnFinishTimer=null;
+const sharpStyles=document.createElement('style');
+sharpStyles.textContent=`
+.card.flat-rendering{perspective:none!important;transform:none!important;transform-style:flat!important}
+.card.flat-rendering .flip{transform:none!important;transform-style:flat!important;transition:none!important}
+.card.flat-rendering .cf,.card.flat-rendering .cb{transform:none!important;backface-visibility:visible!important;-webkit-backface-visibility:visible!important}
+.card.flat-rendering .flip:not(.turned) .cb,.card.flat-rendering .flip.turned .cf{visibility:hidden;pointer-events:none}
+.card.flat-rendering .flip:not(.turned) .cf,.card.flat-rendering .flip.turned .cb{visibility:visible}
+`;
+document.head.appendChild(sharpStyles);
+function restoreCardHome(){
+  clearTimeout(turnFinishTimer);turningCard=false;
+  card.classList.remove('flat-rendering');
+  const f=card.querySelector('.flip');if(f)f.style.transition='';
+  if(!cardIsFlat)return;
+  cardHome.insertBefore(card,cardAnchor.nextSibling);
+  ['position','left','top','width','height','margin','transform','perspective'].forEach(k=>card.style.removeProperty(k));
+  cardIsFlat=false;
+}
+function settleCardFlat(){
+  if(!card.classList.contains('has-design'))return;
+  const rect=card.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
+  const snap=n=>Math.round(n*dpr)/dpr;
+  card.getAnimations().forEach(a=>a.cancel());
+  document.body.appendChild(card);
+  Object.assign(card.style,{position:'fixed',left:snap(rect.left)+'px',top:snap(rect.top)+'px',width:snap(rect.width)+'px',height:snap(rect.height)+'px',margin:'0',transform:'none',zIndex:'25'});
+  card.classList.add('flat-rendering');cardIsFlat=true;
+}
+function finishCardTurn(){
+  clearTimeout(turnFinishTimer);
+  if(cardIsFlat)card.classList.add('flat-rendering');
+  const f=card.querySelector('.flip');if(f)f.style.transition='';
+  turningCard=false;
+}
+
 const anim=(el,kf,o)=>el.animate(kf,Object.assign({fill:"forwards",easing:"cubic-bezier(.45,.05,.25,1)"},o)).finished;
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
  
 function reset(){
+  restoreCardHome();
   [env,back,flap,card].forEach(el=>el.getAnimations().forEach(a=>a.cancel()));
   env.style.transformStyle="preserve-3d"; back.classList.remove("flat");
   env.querySelector(".front").hidden=false;
@@ -77,12 +118,13 @@ function reset(){
   $("side").classList.remove("show"); $("bar").classList.remove("show"); opened=false;
 }
 function showFinal(){
+  restoreCardHome();
   const p=finalPose();
   env.querySelector(".front").hidden=true; back.classList.add("flat"); env.style.transformStyle="flat";
   env.style.opacity=1; card.style.zIndex=5;
   [env,back,flap,card].forEach(el=>el.getAnimations().forEach(a=>a.cancel()));
   flap.style.zIndex=4; flap.style.transform="none"; card.style.transform=p.card; env.style.transform=p.env; env.style.opacity=p.envOpacity;
-  revealUi();
+  settleCardFlat(); revealUi();
 }
 let CAL_OK=false, MAP_OK=false, JOIN_OK=false;
 /* buttons beside the card are set as soon as the invitation loads (the box is still invisible), so the final layout already leaves room for them */
@@ -96,8 +138,21 @@ let FLIP_T=null, USER_TURNED=false;
 function scheduleFlip(){ clearTimeout(FLIP_T); if(!card.classList.contains("two-sided")) return;
   FLIP_T=setTimeout(()=>{ const f=card.querySelector(".flip"); if(opened && !running && !USER_TURNED && f && !f.classList.contains("turned")) turnCard(); },7000); }
 function userTurn(){ USER_TURNED=true; clearTimeout(FLIP_T); turnCard(); }
-function turnCard(){ const f=card.querySelector(".flip"); if(!f||!card.classList.contains("two-sided")||!opened) return;
-  const t=f.classList.toggle("turned"); $("turnBtn").textContent=t?"View the front":"View the back"; }
+function turnCard(){
+  const f=card.querySelector('.flip');
+  if(!f||!card.classList.contains('two-sided')||!opened||running||turningCard)return;
+  turningCard=true;
+  if(cardIsFlat&&!reduce){
+    f.style.transition='none';card.classList.remove('flat-rendering');
+    void f.offsetWidth; // establish the starting front/back orientation without animation
+    f.style.transition='';
+  }
+  const turned=f.classList.toggle('turned');
+  $('turnBtn').textContent=turned?'View the front':'View the back';
+  if(reduce||!cardIsFlat){finishCardTurn();return;}
+  turnFinishTimer=setTimeout(finishCardTurn,950);
+}
+
  
 async function arrive(){
   reset(); env.style.transform=""; card.style.transform=`rotate(${ROT}deg) scale(${K})`; flap.style.transform="";
@@ -134,7 +189,7 @@ async function play(){
   anim(flap,[{transform:"perspective(900px) rotateX(178deg)"},{transform:"perspective(900px) rotateX(0deg)"}],{duration:800,easing:"ease-in-out"});
   anim(env,[{transform:"none",opacity:1},{transform:p.env,opacity:p.envOpacity}],{duration:1000});
   await anim(card,[{transform:`translateY(${-EH*.1}px) rotate(0deg) scale(${K*1.02})`},{transform:p.card}],{duration:1000});
-  revealUi(); running=false; scheduleFlip();   // two-sided cards turn over by themselves after 7 s
+  settleCardFlat(); revealUi(); running=false; scheduleFlip();   // two-sided cards turn over by themselves after 7 s
 }
  
 /* ---------- RSVP form (fields, questions and privacy note come from the panel) ---------- */
