@@ -336,20 +336,15 @@ $("replayBtn").onclick=async()=>{ clearTimeout(FLIP_T); USER_TURNED=false; const
 const MEDIA={};
 function fetchMedia(id){ return AZUR_API.media(id); }
 function block(title,html){ return `<div class="iblock">${title?`<h4>${esc(title)}</h4>`:""}${html}</div>`; }
-function partnerSignature(){
-  return '<div class="partner-signature" aria-label="Event partners">'+[
-    ['AzurGroup','Azur Group'],['DBH','Destination by Hyatt'],['EV','Engel & Völkers']
-  ].map(([file,name])=>`<img src="assets/${file}_Black.svg" alt="${esc(name)}" class="partner-${file.toLowerCase()}" loading="lazy">`).join('')+'</div>';
-}
 function renderInfo(){
-  const P=CFG.panel, out=[], online=CFG.loc.mode==="online"; let signatureShown=false;
+  const P=CFG.panel, out=[], online=CFG.loc.mode==="online";
   out.push(`<div class="ihead"><h3>${esc(INV.title)}</h3><p>Hosted by ${esc(HOST)}</p></div>`);
   const cal=CAL_OK?`<div class="ilinks"><a class="btn" href="${esc($("calBtn").href)}" target="_blank" rel="noopener">Add to calendar</a></div>`:"";
   out.push(block("When",`<p>${esc(INV.dateText)}\n${esc(TIME_TEXT)}</p>${cal}`));
   if(online) out.push(block("Where",`<p>Online${CFG.loc.note?"\n"+esc(CFG.loc.note):""}</p>${JOIN_URL?`<div class="ilinks"><a class="btn" href="${esc(JOIN_URL)}" target="_blank" rel="noopener">Join online</a></div>`:""}`));
   else if(INV.location||CFG.loc.address||MAP_URL) out.push(block("Where",`<p>${esc([INV.location,CFG.loc.address].filter(Boolean).join("\n"))}</p>${MAP_URL?`<div class="ilinks"><a class="btn" href="${esc(MAP_URL)}" target="_blank" rel="noopener">View on map</a></div>`:""}`));
   (P.order||[]).forEach(k=>{ const b=P[k]; if(!b||!b.on) return;
-    if(k==="summary"&&b.text){ out.push(block("",`<p>${esc(b.text)}</p>${partnerSignature()}`)); signatureShown=true; }
+    if(k==="summary"&&b.text) out.push(block("",`<p>${esc(b.text)}</p>`));
     if(k==="sections") (b.items||[]).forEach(s=>out.push(block(s.t,`<p>${esc(s.b)}</p>`)));
     if(k==="links"&&(b.items||[]).length) out.push(block("Links",`<div class="ilinks">${b.items.filter(l=>isHttps(l.u)).map(l=>`<a class="btn" href="${esc(l.u)}" target="_blank" rel="noopener">${esc(l.l||"Open link")}</a>`).join("")}</div>`));
     if(k==="gallery"&&(b.items||[]).length) out.push(block("Gallery",`<div class="gal${b.items.length===1?" one":""}">${b.items.map((g,i)=>`<button type="button" data-photo="${esc(g.id)}" aria-label="Open photo ${i+1}"></button>`).join("")}</div>`));
@@ -359,7 +354,6 @@ function renderInfo(){
     if(k==="sponsors"&&(b.items||[]).length) out.push(block("Sponsors",`<div class="spons">${b.items.map(s=>{ const inner=s.logo?`<b data-logo="${esc(s.logo)}" data-alt="${esc(s.name||"Sponsor")}">${esc(s.name||"")}</b>`:`<b>${esc(s.name)}</b>`;
       return isHttps(s.url)?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${inner}</a>`:`<span>${inner}</span>`; }).join("")}</div>`));
   });
-  if(!signatureShown) out.push(block("",`<p>We look forward to welcoming you.</p>${partnerSignature()}`));
   out.push(`<button class="btn viewinv" type="button" data-viewinv>View the invitation</button>`);
   $("infoBody").innerHTML=out.join("");
   $("infoBody").querySelectorAll("[data-photo]").forEach(b=>fetchMedia(b.dataset.photo).then(j=>{ const im=new Image(); im.alt=""; im.onload=()=>{ b.appendChild(im); b.classList.add("ok"); }; im.src=j.data; }).catch(()=>{ b.remove(); }));
@@ -406,9 +400,9 @@ function loadFont(name,data){ if(!name||FONT_LOADED[name]) return; FONT_LOADED[n
   const l=document.createElement("link"); l.rel="stylesheet"; l.href="https://fonts.googleapis.com/css2?family="+encodeURIComponent(name).replace(/%20/g,"+")+"&display=swap"; document.head.appendChild(l); }
 function textOn(col){ const [R,G,B]=hex2rgb(col).map(v=>{ v/=255; return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4); }); return (.2126*R+.7152*G+.0722*B)>.3; }
 function applyEnvelope(o){
-  // Azurean campaign theme; takes precedence over legacy spreadsheet colours.
-  const col = window.AZUR_CONFIG.envelopeColor || o.envColor || "#3B4344";
-  const liner = window.AZUR_CONFIG.linerColor || o.linerColor || "#5D727C";
+  // default = E&V brand beiges: Beige 1 outside, Beige 2 inside
+  const col = hex2rgb(o.envColor) ? o.envColor : "#e2d9d0";
+  const liner = hex2rgb(o.linerColor) ? o.linerColor : (hex2rgb(o.envColor) ? shade(col,1) : "#f8f5f0");
   const light = textOn(col);
   document.getElementById("paperBg").setAttribute("fill",col);
   document.getElementById("weaveBg").setAttribute("fill",liner);
@@ -418,16 +412,15 @@ function applyEnvelope(o){
   // text on the front: editable text, font, size and colour (auto contrast when empty)
   const txt = o.envText==null ? "You are invited" : String(o.envText);
   const el=document.getElementById("envText"); el.textContent=txt; el.hidden=!txt.trim();
-  root.setProperty("--env-font",'"Bodoni Moda", Georgia, serif');
+  if(o.envFont){ loadFont(o.envFont,o.fontData); root.setProperty("--env-font",`"${o.envFont}", Georgia, serif`); }
   const size=parseFloat(o.envTextSize); if(size>0) root.setProperty("--env-size",String(Math.min(12,Math.max(2,size))));
-  root.setProperty("--env-text",window.AZUR_CONFIG.envelopeTextColor || "#E0DCD6");
+  root.setProperty("--env-text", hex2rgb(o.envTextColor) ? o.envTextColor : (light ? "#333333" : "#f8f5f0"));
   document.querySelector(".front .to").style.color = light ? "#555b69" : "#a8a397";
   // optional stamp (PNG, may be transparent) + postmark only when there is a stamp
   const bgUrl = o.bg || (/^[a-z0-9-]+$/.test(o.bgPreset||"") ? "bg/"+o.bgPreset+".jpg" : "");
   if(bgUrl) $("bgImg").style.backgroundImage=`url("${bgUrl}")`;   // default (none chosen) = White grain
   const st=document.getElementById("stampImg");
-  // Three SVG partner logos replace the single legacy stamp.
-  st.hidden=true;
+  if(o.stamp){ st.src=o.stamp; st.hidden=false; }
   const ss=parseFloat(o.stampSize); if(ss>0) root.setProperty("--stamp-w",Math.min(90,Math.max(8,ss))+"%");
 }
 function loadDesign(){
