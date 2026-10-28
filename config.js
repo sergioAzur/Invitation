@@ -2,5 +2,8 @@
 window.AZUR_CONFIG = {
   apiUrl: 'https://script.google.com/macros/s/AKfycbwogSHloS3G6WUESHczdF3Us723evk6ZNCkGguWWaROAQPqvf7CMo7khHbsanHlAkxV/exec',
   defaultEvent: 'AZUR-001',
-  brand: 'Azur Group'
+  brand: 'Azurean Marbella',
+  envelopeColor: '#3B4344',
+  linerColor: '#5D727C',
+  envelopeTextColor: '#E0DCD6'
 };
