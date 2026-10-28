@@ -3,7 +3,7 @@ const API = window.AZUR_CONFIG.apiUrl;
 const Q = new URLSearchParams(location.search);
 const INVITEE = { email:(Q.get("email")||"").trim(), name:(Q.get("name")||"").trim(), company:(Q.get("company")||"").trim() };
 const LIST = (Q.get("list")||"").trim();
-let INV = null, CONFIG = { maxGuests: 0 }, RSVP_ON = true, CFG = null, STATS = {};
+let INV = null, RSVP_ON = true, CFG = null, STATS = {};
 function loadInvitation(){ return AZUR_API.load(Q.get("inv")); }
 let VIEWER = INVITEE.email;
 try{ if(!VIEWER){ VIEWER = localStorage.getItem(AZUR_API.prefix+"viewer") || ("guest-"+Math.random().toString(36).slice(2,10)); localStorage.setItem(AZUR_API.prefix+"viewer",VIEWER); } }catch(e){ VIEWER = VIEWER || ("guest-"+Math.random().toString(36).slice(2,10)); }
@@ -15,7 +15,7 @@ const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 /* ---------- settings from the panel (Details tab) ---------- */
 function cfgDefaults(){ return {host:"",kind:"invitation",loc:{mode:"in",address:"",showMap:true,url:"",note:""},allDay:false,showCal:true,
   panel:{on:false,order:["summary","sections","links","gallery","guests","files","sponsors"],summary:{on:false,text:""},sections:{on:false,items:[]},links:{on:false,items:[]},gallery:{on:false,items:[]},guests:{on:false,mode:"names"},files:{on:false,items:[]},sponsors:{on:false,items:[]}},
-  rsvp:{on:true,dueOn:false,due:"",capOn:false,cap:0,change:true,fields:{first:"req",last:"req",email:"req",phone:"req",company:"req",idDoc:"off",plate:"off"},guestsSame:true,andGuest:false,questions:[],privacy:""}}; }
+  rsvp:{on:true,dueOn:false,due:"",capOn:false,cap:0,change:true,fields:{first:"req",last:"req",email:"req",phone:"req",company:"req",idDoc:"off",plate:"off"},questions:[],privacy:""}}; }
 function mergeCfg(d,s){ if(!s||typeof s!=="object") return d;
   Object.keys(s).forEach(k=>{ const a=d[k], b=s[k]; if(a&&typeof a==="object"&&!Array.isArray(a)&&b&&typeof b==="object"&&!Array.isArray(b)) mergeCfg(a,b); else if(b!==undefined) d[k]=b; }); return d; }
 const PRIV_DEFAULT="I understand that Azur Group will use these details to manage my attendance.";
@@ -138,22 +138,20 @@ async function play(){
 }
  
 /* ---------- RSVP form (fields, questions and privacy note come from the panel) ---------- */
-const people=$("people"); let attending=null, guestCount=0;
+const people=$("people"); let attending=null;
 const FIELD_DEFS={first:["First name","text","given-name"],last:["Last name","text","family-name"],email:["Email","email","email"],phone:["Phone","tel","tel"],company:["Company","text","organization"],idDoc:["DNI / NIE","text","off"],plate:["Car plate","text","off"]};
 const FIELD_ROWS=[["first","last"],["email"],["phone","company"],["idDoc"],["plate"]];
 const ME_KEY=AZUR_API.prefix+"me";   // details typed last time on this device (prefilled, and keeps the same invitee when the answer changes)
 function loadMe(){ try{ return JSON.parse(localStorage.getItem(ME_KEY)||"{}")||{}; }catch(e){ return {}; } }
 function saveMe(p){ try{ const k={}; ["first","last","email","phone","company"].forEach(x=>{ if(p&&p[x]) k[x]=p[x]; }); localStorage.setItem(ME_KEY,JSON.stringify(k)); }catch(e){} }
 const F=()=>CFG.rsvp.fields;
-function personKeys(isGuest,decline){ const f=F(); const keys=Object.keys(FIELD_DEFS).filter(k=>k==="first"||(f[k]&&f[k]!=="off"));
-  if(decline) return keys.filter(k=>k==="first"||k==="last"||k==="email");
-  return isGuest&&!CFG.rsvp.guestsSame ? keys.filter(k=>k==="first"||k==="last") : keys; }
+function personKeys(decline){ const f=F(); const keys=Object.keys(FIELD_DEFS).filter(k=>k==="first"||(f[k]&&f[k]!=="off"));
+  return decline ? keys.filter(k=>k==="first"||k==="last"||k==="email") : keys; }
 function personBlock(idx,decline){
-  const isGuest=idx>0, d=document.createElement("div"); d.className="person"; d.dataset.idx=idx;
-  const keys=personKeys(isGuest,decline);
-  d.innerHTML=`<div class="ph"><span>${isGuest?"Guest":"Your details"}</span>${isGuest?'<button type="button" data-remove>Remove</button>':""}</div>`+
-    FIELD_ROWS.map(r=>r.filter(k=>keys.includes(k))).filter(r=>r.length).map(r=>r.length>1?`<div class="row">${r.map(k=>field(idx,k)).join("")}</div>`:field(idx,r[0])).join("");
-  if(isGuest) d.querySelector("[data-remove]").onclick=()=>{ d.remove(); guestCount--; updateGuestBtn(); };
+  const d=document.createElement("div"); d.className="person"; d.dataset.idx=0;
+  const keys=personKeys(decline);
+  d.innerHTML='<div class="ph"><span>Your details</span></div>'+
+    FIELD_ROWS.map(r=>r.filter(k=>keys.includes(k))).filter(r=>r.length).map(r=>r.length>1?`<div class="row">${r.map(k=>field(0,k)).join("")}</div>`:field(0,r[0])).join("");
   return d;
 }
 function field(i,k){
@@ -174,12 +172,11 @@ function setAttend(v){
   if(v!==null && (was!==v || !people.children.length)){
     // keep what was typed when switching between "Will attend" and "Will not attend"
     const keep={}; people.querySelectorAll('.person[data-idx="0"] input').forEach(i=>{ if(i.value.trim()) keep[i.name]=i.value.trim(); });
-    people.innerHTML=""; guestCount=0;
+    people.innerHTML="";
     const b=personBlock(0,v===false); people.appendChild(b); fillPerson(b,keep);
   }
-  updateGuestBtn(); updateQs();
+  updateQs();
 }
-function updateGuestBtn(){ $("addGuest").hidden = !attending || guestCount>=CONFIG.maxGuests; }
 $("yesBtn").onclick=()=>setAttend(true);
 $("form").addEventListener("input",e=>{ const t=e.target, er=t.id&&$(t.id+"_e"); if(er&&er.textContent){ er.textContent=""; t.removeAttribute("aria-invalid"); }
   const q=t.closest("[data-q]"); if(q){ const qe=q.querySelector(".err"); if(qe) qe.textContent=""; } if(t.id==="consent") $("formErr").textContent=""; });
@@ -187,7 +184,6 @@ $("noBtn").onclick=()=>setAttend(false);
 /* ID type changed: new example, clear the error */
 people.addEventListener("change",e=>{ const t=e.target; if(!/_t$/.test(t.id||"")) return; const inp=$(t.id.slice(0,-2)); if(!inp) return;
   inp.placeholder = t.value==="passport" ? "e.g. PAA123456" : "e.g. 12345678Z"; const er=$(inp.id+"_e"); if(er) er.textContent=""; inp.removeAttribute("aria-invalid"); });
-$("addGuest").onclick=()=>{ guestCount++; const b=personBlock(1+Date.now()%100000); people.appendChild(b); updateGuestBtn(); b.querySelector("input").focus(); };
  
 /* custom questions */
 function renderQuestions(){
@@ -238,7 +234,7 @@ function validate(){
   return ok;
 }
 function collect(){
-  const ps=[...people.querySelectorAll(".person")].map(p=>Object.fromEntries([...p.querySelectorAll("input")].map(i=>[i.name,i.value.trim()])));
+  const ps=[people.querySelector('.person[data-idx="0"]')].filter(Boolean).map(p=>Object.fromEntries([...p.querySelectorAll("input")].map(i=>[i.name,i.value.trim()])));
   const answers={}; visibleQs().forEach(q=>{ answers[q.id]=answerOf(q); });
   return { invId:INV.id, inviteeEmail:INVITEE.email||"", inviteeName:INVITEE.name||((ps[0]&&[ps[0].first,ps[0].last].filter(Boolean).join(" "))||""), viewerId:VIEWER, attending, people:ps, answers, consent:!$("consentBox").hidden&&$("consent").checked, message:$("msg").value.trim() };
 }
@@ -254,7 +250,7 @@ function errText(code){ code=String(code||"");
   if(code==="https_required") return "Open the published HTTPS website to submit your RSVP.";
   if(code==="invalid_email") return "Enter a valid email address.";
   if(code==="invalid_phone") return "Enter a valid phone number.";
-  if(code==="invalid_guests") return "Check the number of guests.";
+  if(code==="invalid_guests") return "Only one person is allowed per RSVP. Please reload the page.";
   if(code==="closed") return "Replies for this event are closed.";
   if(code==="full") return "Sorry, this event is now full. You can still let the host know you can’t attend.";
   if(code==="already") return "This email already has an RSVP. Use the original browser to change it, or contact the host.";
@@ -283,7 +279,7 @@ $("form").onsubmit=async e=>{
     const first=(data.people[0]&&data.people[0].first)||INVITEE.name.split(" ")[0]||"";
     $("thxTitle").textContent= attending ? "See you there" : "Thank you";
     $("thxText").textContent= attending
-      ? `${first?first+", your":"Your"} RSVP is confirmed${data.people.length>1?" for you and your guest"+(data.people.length>2?"s":""):""}. Your response has been saved.`
+      ? `${first?first+", your":"Your"} RSVP is confirmed. Your response has been saved.`
       : `${first?first+", we":"We"}'re sorry you can't join us. Thank you for letting us know.`;
     $("form").hidden=true; $("thanks").hidden=false;
     markDone(attending);
@@ -466,11 +462,11 @@ function fillInvitation(){
   if(!INV.cfg){ if(/save the date/i.test(INV.type)) CFG.kind="save"; CFG.rsvp.on=/rsvp/i.test(INV.type); }
   STATS=INV.stats||{};
   const R=CFG.rsvp, online=CFG.loc.mode==="online"; PANEL_ON_RAW = CFG.panel.on!==false && !!INV.cfg;
-  CONFIG.maxGuests = INV.maxGuests; RSVP_ON = CFG.kind!=="save" && R.on!==false;
+  RSVP_ON = CFG.kind!=="save" && R.on!==false;
   applyEnvelope(INV);
   document.title = INV.title + " · " + (window.AZUR_CONFIG.brand || "Azur Group");
   HOST = CFG.host || window.AZUR_CONFIG.brand || "Azur Group"; $("cHost").textContent = HOST;
-  if(INVITEE.name) $("toLine").textContent = "For "+INVITEE.name+(R.andGuest && INV.maxGuests>0 ? " and Guest" : "");
+  if(INVITEE.name) $("toLine").textContent = "For "+INVITEE.name;
   $("cEyebrow").textContent = CFG.kind==="save" ? "Save the date" : "You are invited to";
   $("cTitle").textContent = INV.title;
   const allDay = CFG.allDay || /^all day$/i.test(INV.time||"");
